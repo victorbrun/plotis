@@ -88,7 +88,7 @@ class PlotIs(AbstractContextManager):
                 dataset.to_csv(fp)
 
         # Writing context source to file 
-        abs_file_path = self.figpath + "run.py" 
+        abs_file_path = self.figpath + "/run.py" 
         with open(abs_file_path, "w+") as fp:
             fp.writelines(self.context_source_lines)
         
