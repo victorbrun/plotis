@@ -41,5 +41,7 @@ def test_nested_contexts() -> None:
     """Tests if Exception is raised when trying
     to use PlotIs in nested with contexts.
     """
-    with pytest.raises(Exception):
+    with pytest.raises(Exception) as e_info:
         run()
+
+        assert e_info == "PlotIs does not support nested `with` contexts using PlotIs"

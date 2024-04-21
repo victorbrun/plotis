@@ -15,11 +15,11 @@ mock_data = pd.DataFrame(
 )
 
 def run():
-    with PlotIs(mock_fig_folder1, mock_data):
+    with PlotIs(mock_fig_folder1, [mock_data]):
         # Does some arbitrary data manipulation
         mock_data["a"] = mock_data["x"] + mock_data["y"]
 
-        with PlotIs(mock_fig_folder2, mock_data):
+        with PlotIs(mock_fig_folder2, [mock_data]):
             # adding some whitespace 
 
             # Does some plotting

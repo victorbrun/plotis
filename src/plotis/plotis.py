@@ -19,7 +19,7 @@ class PlotIs(AbstractContextManager):
     def __init__(self, figpath: str, data: List[pd.DataFrame]) -> None:
         self.figpath = figpath
         self.data = data
-        
+
         # Information about the calling file
         self.calling_filename = "" 
         self.calling_line_start = -1 
@@ -28,12 +28,17 @@ class PlotIs(AbstractContextManager):
 
     def __enter__(self) -> Any:
         calling_frame = inspect.stack()[1]
-        # Ensuring that this function is called 
-        # as part of a with statement
-        with_context_pattern = re.compile(r"with PlotIs[(][\S\s]{1,}[)] as \S{1,}:[\n]")
+        
+        # Ensuring we have calling code context
         if calling_frame.code_context is None:
             raise Exception("Could not find code context")
-        elif not with_context_pattern.fullmatch(calling_frame.code_context[0].lstrip()):
+        calling_context = calling_frame.code_context[0]
+        
+        # Ensuring that this function is called 
+        # as part of a with statement
+        regex_str = r"(\s{1,}|)with PlotIs[(](\s|\S|){1,}[)] as \S{1,}:[\n]|(\s{1,}|)with PlotIs[(](\s|\S|){1,}[)]:[\n]" 
+        with_context_pattern = re.compile(regex_str)
+        if with_context_pattern.fullmatch(calling_context) is None :
             raise Exception(f"PlotIs must be called by `with`: {calling_frame.code_context[0]}")
        
         # Parsing calling frame to set up attributes
@@ -41,7 +46,7 @@ class PlotIs(AbstractContextManager):
         self.calling_context_line_start = calling_frame.lineno + 1 # Exclude calling line
         self.calling_context_line_end = self._get_last_lineno_of_context(
             self.calling_filename,
-            self.calling_line_start,
+            self.calling_context_line_start,
             include_calling_line=False
         )
 
@@ -52,17 +57,15 @@ class PlotIs(AbstractContextManager):
             # list index starts at 0.
             lbnd_inclusive = self.calling_context_line_start - 1 
             ubnd_exclusive = self.calling_context_line_end
-            self.context_source_lines = fp.readline()[lbnd_inclusive:ubnd_exclusive]
+            lines = fp.readlines()[lbnd_inclusive:ubnd_exclusive]
 
-        # Ensuring that tddhere are no nested with contexts using PlotIs 
-        line_match_list = [with_context_pattern.match(line) != None for line in self.context_source_lines]
+            # Strips indentation and store lines in attribute 
+            self.context_source_lines = [line.lstrip() for line in lines]
+
+        # Ensuring that there are no nested with contexts using PlotIs 
+        line_match_list = [with_context_pattern.match(line) is not None for line in self.context_source_lines]
         if True in line_match_list:
             raise Exception("PlotIs does not support nested `with` contexts using PlotIs")
-
-
-        print(f"Start: {self.calling_filename}:{self.calling_context_line_start}")
-        print(f"End: {self.calling_filename}:{self.calling_context_line_end}")
-
 
     def __exit__(
         self, 
@@ -72,6 +75,7 @@ class PlotIs(AbstractContextManager):
     ) -> bool | None:
         calling_frame = inspect.stack()[1]
         self.calling_line_end = calling_frame.lineno
+
 
         # Creates the folder in which to write the data and code
         if not os.path.exists(self.figpath):
@@ -83,6 +87,10 @@ class PlotIs(AbstractContextManager):
             with open(filepath, "w+") as fp:
                 dataset.to_csv(fp)
 
+        # Writing context source to file 
+        abs_file_path = self.figpath + "run.py" 
+        with open(abs_file_path, "w+") as fp:
+            fp.writelines(self.context_source_lines)
         
 
     def _get_last_lineno_of_context(
