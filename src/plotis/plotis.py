@@ -16,14 +16,15 @@ class PlotIs(AbstractContextManager):
     needed to independently reproduce plots.
     """
 
-    def __init__(self, figpath: str, data: List[pd.DataFrame]) -> None:
+    def __init__(self, figpath: str, data: pd.DataFrame) -> None:
         self.figpath = figpath
         self.data = data
 
         # Information about the calling file
         self.calling_filename = "" 
-        self.calling_line_start = -1 
+        self.calling_context_line_start = -1  # This is set to calling line + 1
         self.calling_line_end = -1
+        self.constructing_line = "" # Line of code conaining the constructor call
         self.context_source_lines = []
 
     def __enter__(self) -> Any:
@@ -32,13 +33,13 @@ class PlotIs(AbstractContextManager):
         # Ensuring we have calling code context
         if calling_frame.code_context is None:
             raise Exception("Could not find code context")
-        calling_context = calling_frame.code_context[0]
-        
+        self.constructing_line = calling_frame.code_context[0]
+       
         # Ensuring that this function is called 
         # as part of a with statement
         regex_str = r"(\s{1,}|)with PlotIs[(](\s|\S|){1,}[)] as \S{1,}:[\n]|(\s{1,}|)with PlotIs[(](\s|\S|){1,}[)]:[\n]" 
         with_context_pattern = re.compile(regex_str)
-        if with_context_pattern.fullmatch(calling_context) is None :
+        if with_context_pattern.fullmatch(self.constructing_line) is None :
             raise Exception(f"PlotIs must be called by `with`: {calling_frame.code_context[0]}")
        
         # Parsing calling frame to set up attributes
@@ -82,15 +83,16 @@ class PlotIs(AbstractContextManager):
             os.makedirs(self.figpath)
 
         # Writing data to figpath
-        for ix, dataset in enumerate(self.data):
-            filepath = self.figpath + f"/data{ix}.csv"
-            with open(filepath, "w+") as fp:
-                dataset.to_csv(fp)
+        filepath = self.figpath + f"/data.csv"
+        with open(filepath, "w+") as fp:
+            self.data.to_csv(fp)
 
-        # Writing context source to file 
+        # Writing concatinating data load code with 
+        # context source and writing it to file
         abs_file_path = self.figpath + "/run.py" 
         with open(abs_file_path, "w+") as fp:
-            fp.writelines(self.context_source_lines)
+            code_to_write = self._get_data_load_code() + self.context_source_lines
+            fp.writelines(code_to_write)
         
 
     def _get_last_lineno_of_context(
@@ -169,3 +171,40 @@ class PlotIs(AbstractContextManager):
         return leading_spaces
 
 
+    def _get_data_load_code(self) -> List[str]:
+        """Returns the strings of code needed to load the data, which is saved in 
+        data.csv, into a variable of the same name as was supplied to the data argument
+        in the PlotIs constructor.
+
+        Returns
+        -------
+        List[str]
+            List of strings. Each entry is one line of pyhton code.
+        """
+        # Checking if the contructor call is using PlotIs(data=xxx, xxx)
+        # or PlotIs(some_file_path, some_pd_df)
+        variable_name = ""
+        regex_str = r"data=[\S\s]+"
+        data_pattern_match = re.search(regex_str, self.constructing_line)
+        if data_pattern_match is not None:
+            # Extracts the name of the variable storing the data
+            variable_name = self.constructing_line.split("data=")[1].strip()
+            variable_name = variable_name.replace(")", "").replace(":", "")
+            variable_name = variable_name.strip()
+        else:
+            # Extracts the name of the variable storgin the data 
+            variable_name = self.constructing_line.split(",")[1].strip()
+            variable_name = variable_name.replace(")", "").replace(":", "")
+            variable_name = variable_name.strip()
+
+        # Ensuring that something was catpured by above logic
+        if variable_name == "":
+            raise ValueError("Something went wrong. Could not parse varable name containing data")
+
+        # Constructing line of code to load data from data.csv into variable 
+        data_load_code = [
+            "import pandas as pd\n", 
+            f"{variable_name} = pd.read_csv(\"data.csv\")\n\n"
+        ]
+
+        return data_load_code
