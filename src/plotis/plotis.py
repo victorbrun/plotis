@@ -90,6 +90,7 @@ class PlotIs(AbstractContextManager):
         # Writing concatinating data load code with 
         # context source and writing it to file
         abs_file_path = self.figpath + "/run.py" 
+        print(abs_file_path)
         with open(abs_file_path, "w+") as fp:
             code_to_write = self._get_data_load_code() + self.context_source_lines
             fp.writelines(code_to_write)
