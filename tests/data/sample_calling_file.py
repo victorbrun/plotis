@@ -14,12 +14,12 @@ mock_data = pd.DataFrame(
     }
 )
 
-def run():
-    with PlotIs(mock_fig_folder1, [mock_data]):
+def run_error():
+    with PlotIs(mock_fig_folder1, mock_data):
         # Does some arbitrary data manipulation
         mock_data["a"] = mock_data["x"] + mock_data["y"]
 
-        with PlotIs(mock_fig_folder2, [mock_data]):
+        with PlotIs(mock_fig_folder2, mock_data):
             # adding some whitespace 
 
             # Does some plotting
@@ -28,5 +28,36 @@ def run():
         # Does some plotting
         mock_data.plot(x="x", y="y")
 
-if __name__ == "__main__":
-    run()
+def run_ok1():
+    with PlotIs(mock_fig_folder1, mock_data):
+        # Does some arbitrary data manipulation
+        mock_data["a"] = mock_data["x"] + mock_data["y"]
+
+        # Does some plotting
+        mock_data.plot(x="x", y="y")
+
+def run_ok2():
+    with PlotIs(mock_fig_folder1, data=mock_data):
+        # Does some arbitrary data manipulation
+        mock_data["a"] = mock_data["x"] + mock_data["y"]
+
+        # Does some plotting
+        mock_data.plot(x="x", y="y")
+
+def run_ok3():
+    with PlotIs(figpath=mock_fig_folder1, data=mock_data):
+        # Does some arbitrary data manipulation
+        mock_data["a"] = mock_data["x"] + mock_data["y"]
+
+        # Does some plotting
+        mock_data.plot(x="x", y="y")
+
+def run_ok4():
+    with PlotIs(figpath=mock_fig_folder1, data=mock_data):
+        import matplotlib.pyplot as plt
+
+        #Does some arbitrary data manipulation
+        mock_data["a"] = mock_data["x"] + mock_data["y"]
+
+        # Does some plotting
+        plt.plot(mock_data["a"], mock_data["y"])
