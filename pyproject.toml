@@ -13,6 +13,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[project.urls]
+Homepage="https://github.com/victorbrun/plotis"
+Issues="https://github.com/victorbrun/plotis/issues"
+
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "6.0"
