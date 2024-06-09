@@ -1,8 +1,8 @@
 [project]
 name = "plotis"
-version = "0.0.1"
+version = "0.1"
 authors = [
-  { name="Victor Brun", email="victor.w.brun@gmail.com" },
+  { name="Victor Brun", email="me@victorbrun.com" },
 ]
 description = "Plot isolation tool for pyhton"
 readme = "README.md"
