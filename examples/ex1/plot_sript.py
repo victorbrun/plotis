@@ -1,5 +1,9 @@
+"""Example showing a simple use case of PlotIs.
+"""
+
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt 
 import math
 
 # Making sure import of PlotIs works correctly
@@ -12,26 +16,25 @@ from src.plotis.plotis import PlotIs
 def run() -> None:
     sample_data = generate_data() 
 
-    # Making sure that figure folder is created in the same folder 
-    # as this file
+    # We want to save the figure to a folder named sinus_curve located
+    # at the same place as this file
     this_folder_abs_path ="/".join(os.path.abspath(__file__).split("/")[0:-1]) 
     figure_folder = this_folder_abs_path + "/sinus_curve"
-    
+   
+    # Performing some plotting on the padnas dataframe just 
+    # as usual, but inside the PlotIs context. This will 
+    # save sample_data and and the code in the context 
+    # such that you can indpendently, i.e. without any 
+    # dependency on this file, reproduce the plot
     with PlotIs(figure_folder, sample_data):
-        # This needs to be imported in the context
-        # to ensure that it is included in generated 
-        # run file
-        import matplotlib.pyplot as plt 
-
         # Plots data 
-        plt.plot(sample_data["x"], sample_data["y"])
+        sample_data.plot(x="x", y="y")
         plt.title("Sinus function")
         plt.xlabel("x")
         plt.ylabel("sin(x)")
 
-        # Saves plot 
-        plt.savefig(this_folder_abs_path + "/sinus.png")
-
+        # Shows plot 
+        plt.show()
 
 def generate_data() -> pd.DataFrame:
     """Generate sample data using sinus function.

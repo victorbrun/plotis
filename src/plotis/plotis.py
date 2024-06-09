@@ -211,8 +211,9 @@ class PlotIs(AbstractContextManager):
             raise ValueError("Something went wrong. Could not parse varable name containing data")
 
         # Constructing line of code to load data from data.csv into variable 
+        data_file_path = self.figpath + f"/data.csv"
         data_load_code = [
-            f"{variable_name} = pd.read_csv(\"data.csv\")\n\n"
+            f"{variable_name} = pd.read_csv(\"{data_file_path}\")\n\n"
         ]
 
         return data_load_code
@@ -265,7 +266,13 @@ class PlotIs(AbstractContextManager):
                 code[ix] = line
 
         # Removing any lines containing savefig 
-        code = [line for line in code if "savefig" not in line]
+        code = [line for line in code if ".savefig" not in line]
+
+        # Removing any lines containing plt.show()
+        code = [line for line in code if "plt.show(" not in line]
+
+        # Removes all in line comments
+        code = [line for line in code if line[0] != "#"]
 
         return code
 
