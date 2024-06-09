@@ -29,7 +29,7 @@ def run() -> None:
     with PlotIs(figure_folder, sample_data):
         # Plots data 
         sample_data.plot(x="x", y="y")
-        plt.title("Sinus function")
+        plt.title("Sin function")
         plt.xlabel("x")
         plt.ylabel("sin(x)")
 
