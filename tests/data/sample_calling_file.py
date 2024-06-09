@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 
 from src.plotis.plotis import PlotIs
 
-mock_fig_folder1 = "mockfig1"
-mock_fig_folder2 = "mockfig2"
+output_path = "tests/tmp"
+mock_fig_folder1 = output_path + "/mockfig1"
+mock_fig_folder2 = output_path + "/mockfig2"
 
 mock_data = pd.DataFrame(
     data = {
@@ -33,8 +34,8 @@ def run_error2():
     """
     with PlotIs(mock_fig_folder1, mock_data):
         mock_data.plot(x="x", y="y")
-        plt.savefig("nice_path1.png")
-        plt.savefig("nice_path2.png")
+        plt.savefig(output_path + "/nice_path1.png")
+        plt.savefig(output_path + "/nice_path2.png")
 
 def run_error3():
     """Trying to show multiple figures in PlotIs context.
@@ -91,7 +92,7 @@ def run_ok5():
         # Block set to false so that windows does not 
         # block execution.
         plt.show(block=False)
-        plt.savefig("nice_path")
+        plt.savefig(output_path + "/nice_path.png")
 
 def run_ok6():
     """Showing plot in PlotIs context.
@@ -108,4 +109,4 @@ def run_ok7():
     """
     with PlotIs(figpath=mock_fig_folder1, data=mock_data):
         mock_data.plot(x="x", y="y")
-        plt.savefig("nice_path")
+        plt.savefig(output_path + "/nice_path.png")
