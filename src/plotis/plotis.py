@@ -52,6 +52,7 @@ class PlotIs(AbstractContextManager):
         )
 
         # Extacting source lines
+        lines = []
         with open(self.calling_filename, "r") as fp:
             # Colleting the source lines of our context.
             # Note that code lines start counting at 1 while 
@@ -60,8 +61,13 @@ class PlotIs(AbstractContextManager):
             ubnd_exclusive = self.calling_context_line_end
             lines = fp.readlines()[lbnd_inclusive:ubnd_exclusive]
 
-            # Strips indentation and store lines in attribute 
-            self.context_source_lines = [line.lstrip() for line in lines]
+        # Ensuring that there is not more than one plot in the context
+        # NOTE: this method is very yanky, see _has_multiple_plots().
+        if PlotIs._has_multiple_plots(lines) is True:
+            raise Exception("Multiple figures are not supported. You cannot have more than one savefig or show calls in context")
+
+        # Formats and cleans source code and save it in attribute
+        self.context_source_lines = self._clean_context_source(lines) 
 
         # Ensuring that there are no nested with contexts using PlotIs 
         line_match_list = [with_context_pattern.match(line) is not None for line in self.context_source_lines]
@@ -77,24 +83,26 @@ class PlotIs(AbstractContextManager):
         calling_frame = inspect.stack()[1]
         self.calling_line_end = calling_frame.lineno
 
-
         # Creates the folder in which to write the data and code
         if not os.path.exists(self.figpath):
             os.makedirs(self.figpath)
 
         # Writing data to figpath
-        filepath = self.figpath + f"/data.csv"
-        with open(filepath, "w+") as fp:
+        data_file_path = self.figpath + f"/data.csv"
+        print(f"Writing data to: {data_file_path}")
+        with open(data_file_path, "w+") as fp:
             self.data.to_csv(fp)
 
         # Writing concatinating data load code with 
         # context source and writing it to file
-        abs_file_path = self.figpath + "/run.py" 
-        print(abs_file_path)
-        with open(abs_file_path, "w+") as fp:
-            code_to_write = self._get_data_load_code() + self.context_source_lines
+        code_file_path = self.figpath + "/run.py" 
+        print(f"Writing context code to: {code_file_path}")
+        with open(code_file_path, "w+") as fp:
+            code_to_write = self._get_import_code()
+            code_to_write += self._get_data_load_code()
+            code_to_write += self.context_source_lines
+            code_to_write += self._get_savefig_code("png")
             fp.writelines(code_to_write)
-        
 
     def _get_last_lineno_of_context(
         self,
@@ -204,8 +212,86 @@ class PlotIs(AbstractContextManager):
 
         # Constructing line of code to load data from data.csv into variable 
         data_load_code = [
-            "import pandas as pd\n", 
             f"{variable_name} = pd.read_csv(\"data.csv\")\n\n"
         ]
 
         return data_load_code
+
+    def _get_savefig_code(self, format: str) -> List[str]:
+        """Returns lines of code needed to save 
+        the most recently created figure.
+        """
+        save_path = self.figpath + "/figure." + format
+        return [f"plt.savefig(\"{save_path}\")"]
+
+    def _get_import_code(self) -> List[str]:
+        """Returns lines of code with neccessary imports.
+        """
+        code = [
+            "import pandas as pd\n",
+            "import matplotlib.pyplot as plt\n",
+            "\n"
+        ]
+
+        return code
+
+    def _clean_context_source(self, code: List[str]) -> List[str]:
+        """Cleans and formats the input code such that it can be writen 
+        to independent pyhton file without any unexpected behaviour.
+
+        Parameters
+        ----------
+        code : List[str]
+            List of code lines to be cleaned and formated.
+
+        Returns
+        -------
+        List[str]
+            Input list where each string element has been formated and 
+            cleaned.
+        """
+        # Removing indentation
+        code = [line.lstrip() for line in code]
+
+        # Translating empty lines to blank rows
+        for ix, line in enumerate(code):
+            if len(line) == 0:
+                code[ix] = "\n"
+
+        # Ensuring that last element in each code line is a line break
+        for ix, line in enumerate(code):
+            if line[len(line)-1] != "\n":
+                line = line + "\n"
+                code[ix] = line
+
+        # Removing any lines containing savefig 
+        code = [line for line in code if "savefig" not in line]
+
+        return code
+
+    @staticmethod
+    def _has_multiple_plots(code: List[str]) -> bool:
+        """Returns false if there are more than one 
+        savefig() and or plt.show() call in `code`,
+        otherwise true.
+
+        Parameters 
+        ----------
+        code : List[str]
+            List of code lines in which to check if there are 
+            more than one figure.
+
+        Returns
+        -------
+        bool 
+            False if there are more than one savefig() and or 
+            plt.show() call in `code`, otherwise it returns True.
+        """
+        n_show = 0
+        n_savefig = 0
+        for line in code:
+            n_show += 1 if ".show()" in line else 0
+            n_savefig += 1 if "savefig(" in line else 0
+
+        return n_show > 1 or n_savefig > 1
+
