@@ -10,8 +10,7 @@ pip install plotis
 
 # Usage
 ## Simple example
-`plotis` relies on the context manager `PlotIs`. By putting the plotting logic inside the PlotIs context and supplying the data used for plotting as showcased below, a folder will be created in the working directory which houses the data and code needed to reproduce the plot.  
-
+`plotis` relies on the context manager `PlotIs`. By placing the plotting logic inside the `PlotIs` context and providing the data used for plotting, as shown below, a folder will be created in the working directory. This folder contains the data (`{figfoldername}/data.csv`) and code (`{figfoldername}/run.py`) needed to reproduce the plot independently.
 ```python
 # Import base dependencies
 import pandas as pd 
@@ -41,10 +40,10 @@ with PlotIs(figure_folder, sample_data):
 	plt.show()
 ```
 
-## Latex project example
-As this package was motivate by large documentation projects, this example will showcase how to "high jack" the compilation process of a Latex document to insert the figure produced by above example.
+## LaTeX project example
+As this package was motivate by large documentation projects, this example will showcase how to "highjack" the compilation process of a LaTeX document to insert the figure produced by above example.
 
-Consider a Latex document containing the following: 
+Consider a LaTeX document containing the following content:
 ```latex
 \documentclass[12pt]{article}
 \usepackage{graphicx}
@@ -71,7 +70,7 @@ The sinus function is a trigonometric function which we denote by $\sin{x}$. In 
 \end{document}
 ```
 
-Because you want to version control the figures in this huge Latex project, `figures/sinus_curve.png` does not exist in the repo (as it is of a non-plain text image format). Luckely, you have already written the logic using `plotis` (the code in above example) needed to produce the figure `sinus_curve.png`. As the result produced by running the `plotis` code, `fig1/data.csv` and `fig1/run.py`, is enough to produce the code, you can create a Makefile which will run the plotting script `fig1/run.py` and subsequently move the produced image to the appropriate folder in you Latex project. The Makefil follows as:
+Since you want to version control the figures in this huge LaTeX project, `figures/sinus_curve.png` does not exist in the repository (as it is a non-plain text image format). Fortunately, you have already written the logic using `plotis` (the code in the above example) needed to produce the figure `sinus_curve.png`. The result produced by running the `plotis` code, `fig1/data.csv`, and `fig1/run.py`, is sufficient to recreate the figure. You can create a Makefile to run the plotting script `fig1/run.py` and subsequently move the produced image to the appropriate folder in your LaTeX project. The Makefile is as follows:
 ```make
 all: | plotgen move pdflatex
 	# Executes below targets in the following order
