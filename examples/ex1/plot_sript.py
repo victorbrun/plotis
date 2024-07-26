@@ -11,7 +11,7 @@ import sys
 import os
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
 
-from src.plotis.plotis import PlotIs
+from plotis import PlotIs
 
 def run() -> None:
     sample_data = generate_data() 

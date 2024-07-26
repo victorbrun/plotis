@@ -1,16 +1,21 @@
 [project]
 name = "plotis"
-version = "0.1"
+version = "0.1.6.1"
 authors = [
   { name="Victor Brun", email="me@victorbrun.com" },
 ]
 description = "Plot isolation tool for pyhton"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: BSD 3-Clause License",
+    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
+]
+dependencies = [
+	"pandas",
+	"numpy",
+	"matplotlib",
 ]
 
 [project.urls]
@@ -24,3 +29,7 @@ addopts = "-ra -q"
 testpaths = [
 	"tests"
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
