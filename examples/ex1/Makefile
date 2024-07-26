@@ -18,6 +18,6 @@ move: sinus_curve/figure.png
 
 pdflatex: main.tex
 	# Runs pdflatex twice to make sure
-	# referenceas are created correctly
+	# references are created correctly
 	pdflatex main.tex
 	pdflatex main.tex
