@@ -10,7 +10,7 @@ pip install plotis
 
 # Usage
 ## Simple example
-`plotis` relies on the context manager `PlotIs`. By placing the plotting logic inside the `PlotIs` context and providing the data used for plotting, as shown below, a folder will be created in the working directory. This folder contains the data (`{figfoldername}/data.csv`) and code (`{figfoldername}/run.py`) needed to reproduce the plot independently.
+`plotis` relies on the context manager `PlotIs`. By placing the plotting logic inside the `PlotIs` context and providing the data used for plotting, as shown below, a folder will be created in the working directory. This folder contains the data (`<figfoldername>/data.csv`) and code (`<figfoldername>/run.py`) needed to reproduce the plot independently.
 ```python
 # Import base dependencies
 import pandas as pd 
