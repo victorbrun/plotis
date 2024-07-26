@@ -14,6 +14,36 @@ from types import TracebackType
 class PlotIs(AbstractContextManager):
     """A context manager for isolating, and packaging everything
     needed to independently reproduce plots.
+
+    The plotting logic placed in this context may only rely on 
+    matplotlib.pyplot imported as `import matplotlib,pyplot as plt`.
+
+    The plotting logic in this context may only produce a single figure.
+
+    Every `.show()` and `.savefig()` call will be removed from the plotting 
+    logic before being saved to `run.py`.
+
+    This class can only be used in compination with the keywork `with`.
+
+    Attributes 
+    ----------
+    figpath : str 
+        Path of the folder in which `data.csv` and `run.py` will be saved.
+    data : pandas.DataFrame 
+        Data used in plotting logic.
+    calling_filename : str 
+        Name of the file calling the contructor. This will be set 
+        during runtime.
+    calling_context_line_start : int 
+        Line number + 1 of the constructor call. This will be set during 
+        runtime.
+    calling_line_end : int 
+        Last line of context related to the call of this constructor. 
+        This will be set during runtime.
+    context_source_lines : List[str]
+        Lines of code contain in the context related to the call to 
+        the constructor, i.e. the lines 
+        [calling_context_line_start, calling_context_line_end].
     """
 
     def __init__(self, figpath: str, data: pd.DataFrame) -> None:
