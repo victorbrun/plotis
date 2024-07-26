@@ -7,7 +7,7 @@ pip install plotis
 ```
 
 # Example
-```pyhton
+```python
 # Import base dependencies
 import pandas as pd 
 import matplotlib.pyplot as plt
