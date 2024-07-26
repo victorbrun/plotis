@@ -2,7 +2,7 @@ import pytest
 import inspect
 import pandas as pd
 
-from src.plotis.plotis import PlotIs
+from plotis import PlotIs
 from tests.data.sample_calling_file_linecount import get_last_lineno_of_context_test_func 
 from tests.data.sample_calling_file import run_error1, run_error2, run_error3, run_ok1, run_ok2, run_ok3, run_ok4, run_ok5, run_ok6, run_ok7
 

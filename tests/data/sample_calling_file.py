@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from src.plotis.plotis import PlotIs
+from plotis import PlotIs
 
 output_path = "tests/tmp"
 mock_fig_folder1 = output_path + "/mockfig1"
