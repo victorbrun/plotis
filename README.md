@@ -1,6 +1,4 @@
 # `plotis`
-Test
-
 `plotis` is a plot isolation tool for python. It saves the data and python code needed to independently reproduce plots using a pythonic interface.
 
 This project was initiated to address the issue of repository size ballooning in documentation projects where images are frequently updated. Since the most common image formats are not plain text, Git cannot version control them effectively, resulting in the storage of every version of every image. Instead of converting images to a plain text format or pruning the Git history, I chose to overengineer this solution. This solution uses Python context managers to extract the necessary code and data, enabling the independent reproduction of plots.
