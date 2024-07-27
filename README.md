@@ -1,5 +1,5 @@
 # `plotis`
-Test
+Test 2 
 
 `plotis` is a plot isolation tool for python. It saves the data and python code needed to independently reproduce plots using a pythonic interface.
 
