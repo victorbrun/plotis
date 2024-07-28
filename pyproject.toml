@@ -1,6 +1,6 @@
 [project]
 name = "plotis"
-version = "0.1.6.2"
+version = "0.1.7"
 authors = [
   { name="Victor Brun", email="me@victorbrun.com" },
 ]
