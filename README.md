@@ -41,7 +41,7 @@ with PlotIs(figure_folder, sample_data):
 ```
 
 ## LaTeX project example
-As this package was motivate by large documentation projects, this example will showcase how to "highjack" the compilation process of a LaTeX document to insert the figure produced by above example.
+As this package was motivate by large documentation projects, this example will showcase how to "hijack" the compilation process of a LaTeX document to insert the figure produced by above example.
 
 Consider a LaTeX document containing the following content:
 ```latex

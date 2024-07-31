@@ -1,10 +1,10 @@
 [project]
 name = "plotis"
-version = "0.1.8"
+version = "0.1.9"
 authors = [
   { name="Victor Brun", email="me@victorbrun.com" },
 ]
-description = "Plot isolation tool for pyhton"
+description = "Plot isolation tool for python"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
