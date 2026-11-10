@@ -468,3 +468,10 @@ TSWLatexianTemp*
 
 # glossaries
 *.glstex
+
+### plotis examples ###
+# Built from source by the example Makefiles
+examples/*/main.pdf
+examples/*/figures/
+examples/*/moved/
+examples/ex1/sinus_curve/

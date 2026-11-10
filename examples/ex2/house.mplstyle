@@ -1,0 +1,10 @@
+# Shared house style, applied inside the PlotIs context and copied next to run.py
+figure.figsize: 4.5, 2.8
+font.family: serif
+font.size: 9
+axes.spines.top: False
+axes.spines.right: False
+axes.grid: True
+grid.color: "#e4e3df"
+legend.frameon: False
+axes.prop_cycle: cycler("color", ["2a78d6", "eb6834", "1f9e74"])

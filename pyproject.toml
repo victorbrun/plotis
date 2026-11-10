@@ -1,22 +1,28 @@
 [project]
 name = "plotis"
-version = "0.1.9"
+version = "0.2.0"
 authors = [
   { name="Victor Brun", email="me@victorbrun.com" },
 ]
 description = "Plot isolation tool for python"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
 	"pandas",
-	"numpy",
 	"matplotlib",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest", "flake8", "numpy"]
 
 [project.urls]
 Homepage="https://github.com/victorbrun/plotis"
@@ -26,6 +32,7 @@ Issues="https://github.com/victorbrun/plotis/issues"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
+norecursedirs = ["examples"]
 testpaths = [
 	"tests"
 ]
