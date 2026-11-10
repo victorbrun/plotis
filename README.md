@@ -13,6 +13,8 @@ pip install plotis
 `plotis` relies on the context manager `PlotIs`. By placing the plotting logic inside the `PlotIs` context and providing the data used for plotting, as shown below, a folder will be created in the working directory. This folder contains the data (`<figfoldername>/data.csv`) and code (`<figfoldername>/run.py`) needed to reproduce the plot independently.
 ```python
 # Import base dependencies
+import math
+import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
 
@@ -39,6 +41,30 @@ with PlotIs(figure_folder, sample_data):
 	# Shows plot 
 	plt.show()
 ```
+
+## Options (0.2)
+```python
+with PlotIs(
+    "figures/sine",           # folder for data.csv, run.py (and the figure)
+    sample_data,              # must be a plain variable name
+    format="pdf",             # any format plt.savefig understands (default "png")
+    savefig_kwargs={"bbox_inches": "tight"},  # literals only
+    style="house.mplstyle",   # applied in the context, copied next to run.py
+    render=True,              # also write figures/sine/figure.pdf on exit
+):
+    fig, ax = plt.subplots()
+    for name, group in sample_data.groupby("series"):  # nested blocks are fine
+        ax.plot(group["x"], group["y"], label=name)
+    ax.legend()
+```
+
+- `run.py` resolves `data.csv`, the style file and the output figure relative to its own location, so the folder can be moved and the script run from any working directory.
+- The `with` statement is parsed with `ast`: it may span several lines and use keyword arguments in any order.
+- `data.csv` is written without the index column.
+- Nothing is written if the context raises an exception.
+- `savefig()`/`show()` statements in the context are replaced by `pass` in `run.py`.
+
+`examples/ex2` uses every option above: run `make` there to build the figures and a LaTeX document, and `make reproduce` to regenerate the figures from the moved `run.py` files alone.
 
 ## LaTeX project example
 As this package was motivate by large documentation projects, this example will showcase how to "hijack" the compilation process of a LaTeX document to insert the figure produced by above example.

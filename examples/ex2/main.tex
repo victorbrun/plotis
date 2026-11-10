@@ -1,0 +1,32 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+
+\title{PlotIs example two: every 0.2 option}
+\author{Victor Brun\\ \href{https://victorbrun.com}{victorbrun.com}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+Both figures below are vector PDFs written by \texttt{PlotIs(..., format="pdf",
+render=True)} and included straight from their figure folders. Nothing is
+copied or moved.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics{figures/waves/figure.pdf}
+  \caption{Three phase-shifted sine waves, drawn with a \texttt{for} loop and
+  an \texttt{if} inside the PlotIs context and styled by \texttt{house.mplstyle}.}
+  \label{fig:waves}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics{figures/bars/figure.pdf}
+  \caption{A bar chart with non-ASCII labels.}
+  \label{fig:bars}
+\end{figure}
+
+\end{document}
