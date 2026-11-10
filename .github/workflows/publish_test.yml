@@ -58,3 +58,5 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
+        # Pushes to main that don't bump the version must not fail
+        skip-existing: true
