@@ -84,7 +84,7 @@ jobs:
         '/^## \[/ { p = index($0, "## [" v "]") == 1; next } p'
         CHANGELOG.md > release-notes.md
     - name: Sign the dists with Sigstore
-      uses: sigstore/gh-action-sigstore-python@v2.1.1
+      uses: sigstore/gh-action-sigstore-python@v3.0.0
       with:
         inputs: >-
           ./dist/*.tar.gz
