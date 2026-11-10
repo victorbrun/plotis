@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-
+  tests:
+    name: tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -42,3 +42,14 @@ jobs:
       run: pytest
     - name: Run the ex2 example and reproduce its figures (no LaTeX)
       run: make -C examples/ex2 reproduce
+
+  # Single check named "test" that branch protection on main requires.
+  # It passes only if every Python version in the matrix passed, so the
+  # matrix can change without updating the protection rule.
+  test:
+    needs: tests
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check that all matrix jobs passed
+      run: test "${{ needs.tests.result }}" = "success"
