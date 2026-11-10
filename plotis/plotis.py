@@ -14,20 +14,27 @@ the figure itself (``figure.<format>``) is written too.
 from __future__ import annotations
 
 import ast
+import inspect
 import os
 import shutil
 import sys
 import textwrap
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, ExitStack
 from pathlib import Path
 from types import TracebackType
-from typing import List, Optional, Tuple, Union
+from typing import Union
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 __all__ = ["PlotIs", "PlotIsError"]
 
+DATA_FILE = "data.csv"
+CODE_FILE = "run.py"
+FIGURE_STEM = "figure"
 _FIGURE_CALLS = ("savefig", "show")
+
+_WithNode = Union[ast.With, ast.AsyncWith]
 
 
 class PlotIsError(Exception):
@@ -54,6 +61,7 @@ class PlotIs(AbstractContextManager):
     data : pandas.DataFrame
         Data used by the plotting logic. Must be passed as a plain variable
         name, since ``run.py`` recreates that variable from ``data.csv``.
+        The data is captured as it is when the context is entered.
     format : str
         File format of the saved figure, e.g. ``"png"``, ``"pdf"``, ``"svg"``.
     savefig_kwargs : dict, optional
@@ -69,11 +77,11 @@ class PlotIs(AbstractContextManager):
 
     def __init__(
         self,
-        figpath: Union[str, os.PathLike],
+        figpath: str | os.PathLike,
         data: pd.DataFrame,
         format: str = "png",
-        savefig_kwargs: Optional[dict] = None,
-        style: Optional[Union[str, os.PathLike]] = None,
+        savefig_kwargs: dict | None = None,
+        style: str | os.PathLike | None = None,
         render: bool = False,
     ) -> None:
         if not isinstance(data, pd.DataFrame):
@@ -92,13 +100,14 @@ class PlotIs(AbstractContextManager):
         # Set in __enter__
         self.calling_filename = ""
         self.data_variable = ""
-        self.context_source_lines: List[str] = []
-        self._style_context = None
+        self.context_source_lines: list[str] = []
+        self._snapshot: pd.DataFrame | None = None
+        self._stack = ExitStack()
 
     # ------------------------------------------------------------------ #
     # Context protocol
     # ------------------------------------------------------------------ #
-    def __enter__(self) -> "PlotIs":
+    def __enter__(self) -> PlotIs:
         frame = sys._getframe(1)
         self.calling_filename = frame.f_code.co_filename
         source = self._read_source(self.calling_filename)
@@ -106,47 +115,47 @@ class PlotIs(AbstractContextManager):
 
         with_node, call = self._find_with_node(tree, frame.f_lineno)
         self.data_variable = self._data_variable_name(call)
-        self._check_body(with_node)
-        self.context_source_lines = self._extract_body(source, with_node)
+        figure_calls = [c for stmt in with_node.body for c in self._figure_calls(stmt)]
+        self._check_body(with_node, figure_calls)
+        self.context_source_lines = self._extract_body(source, with_node, figure_calls)
 
+        # Capture the data before the body can mutate it, so that run.py
+        # starts from the same state as the context did.
+        self._snapshot = self.data.copy()
         if self.style is not None:
-            import matplotlib.pyplot as plt
-            self._style_context = plt.style.context(str(self.style))
-            self._style_context.__enter__()
+            self._stack.enter_context(plt.style.context(str(self.style)))
         return self
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
-        try:
+        with self._stack:
             if exc_type is not None:
-                return None  # do not write anything for a failed context
+                return  # do not write anything for a failed context
 
             self.figpath.mkdir(parents=True, exist_ok=True)
-            self.data.to_csv(self.figpath / "data.csv", index=False)
+            self._snapshot.to_csv(self.figpath / DATA_FILE, index=False)
             if self.style is not None:
                 shutil.copyfile(self.style, self.figpath / self.style.name)
-            (self.figpath / "run.py").write_text(self.generate_code(), encoding="utf-8")
+            (self.figpath / CODE_FILE).write_text(self.generate_code(), encoding="utf-8")
 
             if self.render:
-                import matplotlib.pyplot as plt
                 plt.savefig(self.figure_path, **self.savefig_kwargs)
                 plt.close()
-        finally:
-            if self._style_context is not None:
-                self._style_context.__exit__(exc_type, exc_value, traceback)
-                self._style_context = None
-        return None
 
     # ------------------------------------------------------------------ #
     # Public helpers
     # ------------------------------------------------------------------ #
     @property
+    def figure_name(self) -> str:
+        return f"{FIGURE_STEM}.{self.format}"
+
+    @property
     def figure_path(self) -> Path:
-        return self.figpath / f"figure.{self.format}"
+        return self.figpath / self.figure_name
 
     def generate_code(self) -> str:
         """Return the source of the standalone ``run.py``."""
@@ -160,12 +169,12 @@ class PlotIs(AbstractContextManager):
         ]
         if self.style is not None:
             lines.append(f'plt.style.use(HERE / "{self.style.name}")\n')
-        lines.append(f'{self.data_variable} = pd.read_csv(HERE / "data.csv")\n')
+        lines.append(f'{self.data_variable} = pd.read_csv(HERE / "{DATA_FILE}")\n')
         lines.append("\n")
         lines.extend(self.context_source_lines)
         kwargs = "".join(f", {k}={v!r}" for k, v in self.savefig_kwargs.items())
         lines.append("\n")
-        lines.append(f'plt.savefig(HERE / "figure.{self.format}"{kwargs})\n')
+        lines.append(f'plt.savefig(HERE / "{self.figure_name}"{kwargs})\n')
         return "".join(lines)
 
     # ------------------------------------------------------------------ #
@@ -197,7 +206,7 @@ class PlotIs(AbstractContextManager):
         return name == "PlotIs"
 
     @classmethod
-    def _find_with_node(cls, tree: ast.AST, lineno: int) -> Tuple[ast.With, ast.Call]:
+    def _find_with_node(cls, tree: ast.AST, lineno: int) -> tuple[_WithNode, ast.Call]:
         """Return the innermost ``with`` statement whose header spans
         ``lineno`` and contains a PlotIs call, together with that call."""
         best = None
@@ -217,10 +226,14 @@ class PlotIs(AbstractContextManager):
 
     @staticmethod
     def _data_variable_name(call: ast.Call) -> str:
-        expr = call.args[1] if len(call.args) >= 2 else None
-        for kw in call.keywords:
-            if kw.arg == "data":
-                expr = kw.value
+        """Return the variable name passed as ``data``, resolved against the
+        signature of ``PlotIs.__init__`` so positional and keyword use agree."""
+        keywords = {kw.arg: kw.value for kw in call.keywords if kw.arg is not None}
+        try:
+            bound = inspect.signature(PlotIs.__init__).bind_partial(None, *call.args, **keywords)
+        except TypeError as exc:
+            raise PlotIsError(f"Could not parse the PlotIs arguments: {exc}") from None
+        expr = bound.arguments.get("data")
         if not isinstance(expr, ast.Name):
             raise PlotIsError(
                 "The data argument of PlotIs must be a plain variable name "
@@ -229,7 +242,7 @@ class PlotIs(AbstractContextManager):
         return expr.id
 
     @staticmethod
-    def _figure_calls(node: ast.AST) -> List[ast.Expr]:
+    def _figure_calls(node: ast.AST) -> list[ast.Expr]:
         return [
             child for child in ast.walk(node)
             if isinstance(child, ast.Expr)
@@ -239,7 +252,7 @@ class PlotIs(AbstractContextManager):
         ]
 
     @classmethod
-    def _check_body(cls, with_node: ast.With) -> None:
+    def _check_body(cls, with_node: _WithNode, figure_calls: list[ast.Expr]) -> None:
         for stmt in with_node.body:
             for child in ast.walk(stmt):
                 if isinstance(child, (ast.With, ast.AsyncWith)) and any(
@@ -248,28 +261,32 @@ class PlotIs(AbstractContextManager):
                     raise PlotIsError(
                         "PlotIs does not support nested `with` contexts using PlotIs"
                     )
-        calls = [c for stmt in with_node.body for c in cls._figure_calls(stmt)]
         for name in _FIGURE_CALLS:
-            if sum(c.value.func.attr == name for c in calls) > 1:
+            if sum(c.value.func.attr == name for c in figure_calls) > 1:
                 raise PlotIsError(
                     "Multiple figures are not supported. You cannot have more "
                     "than one savefig or show call in the context"
                 )
 
-    @classmethod
-    def _extract_body(cls, source: str, with_node: ast.With) -> List[str]:
+    @staticmethod
+    def _extract_body(source: str, with_node: _WithNode, figure_calls: list[ast.Expr]) -> list[str]:
         """Return the body of ``with_node`` dedented, with every
         ``savefig``/``show`` statement replaced by ``pass``."""
         lines = source.splitlines(keepends=True)
-        start = with_node.body[0].lineno
+        first_stmt = with_node.body[0]
+        start = first_stmt.lineno
         end = with_node.body[-1].end_lineno
         # Keep comment lines directly above the first statement
         while start - 1 > with_node.lineno and lines[start - 2].strip().startswith("#"):
             start -= 1
         body = lines[start - 1:end]
 
-        removed = [c for stmt in with_node.body for c in cls._figure_calls(stmt)]
-        for call in sorted(removed, key=lambda c: c.lineno, reverse=True):
+        # One-line `with PlotIs(...): stmt`: drop the header from the line.
+        # col_offset counts UTF-8 bytes, hence the encode/decode.
+        if first_stmt.lineno == with_node.lineno:
+            body[0] = body[0].encode("utf-8")[first_stmt.col_offset:].decode("utf-8")
+
+        for call in sorted(figure_calls, key=lambda c: c.lineno, reverse=True):
             first, last = call.lineno - start, call.end_lineno - start
             indent = body[first][: len(body[first]) - len(body[first].lstrip())]
             body[first:last + 1] = [f"{indent}pass\n"]

@@ -1,16 +1,31 @@
-import sys 
-import os
-import shutil
+from pathlib import Path
 
-def pytest_sessionfinish(session, exitstatus):
-    """
-    Called after whole test run finished, right before
-    returning the exit status to the system.
-    """
-    # Getting absolute path to tests folder, i.e. folder 
-    # of this file
-    tests_folder_path = "/".join(os.path.abspath(__file__).split("/")[0:-1])
+import matplotlib
 
-    # Removing the temporary folders created as part of tests 
-    shutil.rmtree(tests_folder_path + "/tmp", ignore_errors=True)
-    shutil.rmtree(tests_folder_path + "/temp", ignore_errors=True)
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt  # noqa: E402
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
+
+from plotis.plotis import CODE_FILE  # noqa: E402
+
+
+@pytest.fixture
+def df() -> pd.DataFrame:
+    return pd.DataFrame({"x": [1, 2, 3, 4], "y": [4, 3, 1, 2], "g": list("aabb")})
+
+
+@pytest.fixture
+def folder(tmp_path: Path) -> Path:
+    return tmp_path / "fig"
+
+
+@pytest.fixture(autouse=True)
+def close_figures():
+    yield
+    plt.close("all")
+
+
+def read_code(folder: Path) -> str:
+    return (folder / CODE_FILE).read_text(encoding="utf-8")

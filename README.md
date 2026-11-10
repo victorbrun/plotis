@@ -1,7 +1,7 @@
 # `plotis`
-`plotis` is a plot isolation tool for python. It saves the data and python code needed to independently reproduce plots using a pythonic interface.
+`plotis` is a plot isolation tool for Python. It saves the data and Python code needed to reproduce a plot independently, using a pythonic interface.
 
-This project was initiated to address the issue of repository size ballooning in documentation projects where images are frequently updated. Since the most common image formats are not plain text, Git cannot version control them effectively, resulting in the storage of every version of every image. Instead of converting images to a plain text format or pruning the Git history, I chose to overengineer this solution. This solution uses Python context managers to extract the necessary code and data, enabling the independent reproduction of plots.
+This project started as a fix for repositories that balloon in size in documentation projects where images are updated often. The most common image formats are not plain text, so Git cannot version them efficiently and stores every version of every image. Instead of converting images to a plain-text format or pruning the Git history, I chose to overengineer this solution: a Python context manager extracts the code and data needed to reproduce each plot.
 
 # Installation
 ```bash
@@ -10,39 +10,33 @@ pip install plotis
 
 # Usage
 ## Simple example
-`plotis` relies on the context manager `PlotIs`. By placing the plotting logic inside the `PlotIs` context and providing the data used for plotting, as shown below, a folder will be created in the working directory. This folder contains the data (`<figfoldername>/data.csv`) and code (`<figfoldername>/run.py`) needed to reproduce the plot independently.
+`plotis` relies on the context manager `PlotIs`. Put the plotting logic inside a `PlotIs` context and pass it the data used for plotting, as shown below. On exit, `PlotIs` creates a folder containing the data (`<figfoldername>/data.csv`) and code (`<figfoldername>/run.py`) needed to reproduce the plot independently.
 ```python
-# Import base dependencies
-import math
 import numpy as np
-import pandas as pd 
+import pandas as pd
 import matplotlib.pyplot as plt
 
-# Imports PlotIs context manager from plotis package
-from plotis import PlotIs 
+from plotis import PlotIs
 
 # Generates sample data
-x = np.linspace(0, 4*math.pi)
-y = np.sin(x)
-sample_data = pd.DataFrame(data={"x": x, "y": y})
+x = np.linspace(0, 4 * np.pi)
+sample_data = pd.DataFrame({"x": x, "y": np.sin(x)})
 
-# Specify the name of the folder which will contain 
-# code and data needed to independently reproduce the plot.
-figure_folder = "fig1"
+# Creates the plot inside a PlotIs context. The folder fig1 will contain
+# the code and data needed to reproduce the plot independently.
+with PlotIs("fig1", sample_data):
+    sample_data.plot(x="x", y="y")
+    plt.title("Sine function")
+    plt.xlabel("x")
+    plt.ylabel("sin(x)")
 
-# Creates plot inside PlotIs context
-with PlotIs(figure_folder, sample_data):
-	# Plots data 
-	sample_data.plot(x="x", y="y")
-	plt.title("Sin function")
-	plt.xlabel("x")
-	plt.ylabel("sin(x)")
-
-	# Shows plot 
-	plt.show()
+    # Shows the plot here; replaced by `pass` in run.py
+    plt.show()
 ```
 
-## Options (0.2)
+Running `python fig1/run.py`, from any directory, writes `fig1/figure.png`.
+
+## Options
 ```python
 with PlotIs(
     "figures/sine",           # folder for data.csv, run.py (and the figure)
@@ -59,17 +53,44 @@ with PlotIs(
 ```
 
 - `run.py` resolves `data.csv`, the style file and the output figure relative to its own location, so the folder can be moved and the script run from any working directory.
-- The `with` statement is parsed with `ast`: it may span several lines and use keyword arguments in any order.
+- The `with` statement is parsed with `ast`: it may span several lines, use keyword arguments in any order, or put the body on the same line.
+- The data is captured when the context is entered, so changes the body makes to the data frame are not saved (and are not applied twice by `run.py`).
 - `data.csv` is written without the index column.
 - Nothing is written if the context raises an exception.
 - `savefig()`/`show()` statements in the context are replaced by `pass` in `run.py`.
 
-`examples/ex2` uses every option above: run `make` there to build the figures and a LaTeX document, and `make reproduce` to regenerate the figures from the moved `run.py` files alone.
+`examples/ex2` uses every option above. Run `make` there to build the figures and a LaTeX document, and `make reproduce` to regenerate the figures from the moved `run.py` files alone.
+
+## Limitations
+`run.py` contains only the body of the `with` block, preceded by `import pandas as pd`, `import matplotlib.pyplot as plt` and the data variable loaded from `data.csv`. So the body:
+
+- may only use `pd`, `plt`, the data variable and names it defines or imports itself. Other names from the surrounding script, such as `np`, helper functions or other variables, do not exist in `run.py`.
+- must produce a single figure, with at most one `savefig()` and one `show()` call.
+- cannot contain another `PlotIs` context.
+
+With `render=True`, a `plt.show()` in the body can close the figure on interactive backends, which leaves the rendered file empty. Use `render=True` without `show()`, or use a non-interactive backend such as `Agg`.
+
+`PlotIs` must be used in a source file (not an interactive prompt or notebook cell), since it reads the `with` block from the calling file.
+
+## Errors
+| Exception | Raised when |
+|---|---|
+| `PlotIsError` | `PlotIs` is not used as a `with` statement, `data` is not a plain variable name, the body nests `PlotIs` or has more than one `savefig()`/`show()` call, `savefig_kwargs` holds non-literal values, or the calling source file cannot be read. |
+| `TypeError` | `data` is not a `pandas.DataFrame`. |
+| `FileNotFoundError` | The `style` file does not exist. |
+
+## Migrating from 0.1
+- Catch `PlotIsError` instead of `Exception`.
+- Pass `data` as a plain variable name (`PlotIs(path, df)`, not `PlotIs(path, df.copy())`).
+- `data.csv` has no index column. Read it with `pd.read_csv(path)`, without `index_col=0`.
+- `run.py` now saves `figure.<format>` next to itself instead of relative to the working directory.
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 
 ## LaTeX project example
-As this package was motivate by large documentation projects, this example will showcase how to "hijack" the compilation process of a LaTeX document to insert the figure produced by above example.
+Since this package was motivated by large documentation projects, this example shows how to hook into the compilation of a LaTeX document to insert the figure produced by the example above.
 
-Consider a LaTeX document containing the following content:
+Consider a LaTeX document with the following content:
 ```latex
 \documentclass[12pt]{article}
 \usepackage{graphicx}
@@ -83,44 +104,49 @@ Consider a LaTeX document containing the following content:
 
 \maketitle
 
-\section{The sinus function}
-The sinus function is a trigonometric function which we denote by $\sin{x}$. In figure \ref{fig:sin} we can see that it looks like a wave.
+\section{The sine function}
+The sine function is a trigonometric function which we denote by $\sin{x}$. In figure \ref{fig:sin} we can see that it looks like a wave.
 
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=8cm]{figures/sinus_curve.png}
-	\caption{The sinus function plotted on the interval $[0, 4\pi]$.}
+	\caption{The sine function plotted on the interval $[0, 4\pi]$.}
 	\label{fig:sin}
 \end{figure}
 
 \end{document}
 ```
 
-Since you want to version control the figures in this huge LaTeX project, `figures/sinus_curve.png` does not exist in the repository (as it is a non-plain text image format). Fortunately, you have already written the logic using `plotis` (the code in the above example) needed to produce the figure `sinus_curve.png`. The result produced by running the `plotis` code, `fig1/data.csv`, and `fig1/run.py`, is sufficient to recreate the figure. You can create a Makefile to run the plotting script `fig1/run.py` and subsequently move the produced image to the appropriate folder in your LaTeX project. The Makefile is as follows:
+To keep the repository small, `figures/sinus_curve.png` is not committed, since it is not a plain-text format. The plotting script (`plot_script.py`, using `PlotIs` as above) writes `sinus_curve/data.csv` and `sinus_curve/run.py`, which are enough to recreate the figure. A Makefile then runs `run.py`, copies the image to where the LaTeX document expects it and compiles the document:
 ```make
-all: | plotgen move pdflatex
-	# Executes below targets in the following order
-	# 1. plotget
-	# 2. move
-	# 3. pdflatex
+PYTHON ?= python3
+FIG := sinus_curve
 
-plotgen: sinus_curve/run.py sinus_curve/data.csv
-	# Runs the automatically generated pyhton
-	# script to create the plot
-	python3 fig1/run.py 
+all: main.pdf
 
-move: sinus_curve/figure.png 
-	@echo "\nCreating folder figures if it does not exist"
-	mkdir -p figures 
+# Runs the plotting script, which writes the isolated data and code
+$(FIG)/run.py $(FIG)/data.csv: plot_script.py
+	$(PYTHON) plot_script.py
 
-	@echo "\nCopying produced fiure to figures/"
-	cp fig1/figure.png figures/sinus_curve.png
+# Runs the automatically generated python script to create the plot
+$(FIG)/figure.png: $(FIG)/run.py $(FIG)/data.csv
+	$(PYTHON) $(FIG)/run.py
 
-pdflatex: main.tex
-	# Runs pdflatex twice to make sure
-	# references are created correctly
+# Copies the produced figure to where main.tex expects it
+figures/$(FIG).png: $(FIG)/figure.png
+	mkdir -p figures
+	cp $< $@
+
+# Runs pdflatex twice so that references are resolved
+main.pdf: main.tex figures/$(FIG).png
 	pdflatex main.tex
 	pdflatex main.tex
 ```
 
-This can be found as a working example in `examples/ex1`.
+In a real project you would commit `sinus_curve/` and run only the last three rules. The working example is in `examples/ex1`.
+
+# Development
+```bash
+pip install -e ".[dev]"
+pytest
+```
