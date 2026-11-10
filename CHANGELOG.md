@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1]
+
+### Fixed
+- Release workflow: the Sigstore signing action is bumped to v3, since v2
+  relied on the shut-down `upload-artifact@v3`. The 0.2.0 GitHub release
+  failed because of this, so 0.2.1 replaces it. The package code is the
+  same as in 0.2.0.
+- TestPyPI publishing on pushes to `main` skips versions that are already
+  uploaded instead of failing.
+
 ## [0.2.0]
 
 ### Added
