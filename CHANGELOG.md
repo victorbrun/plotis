@@ -26,6 +26,7 @@ All notable changes to this project are documented here. The format follows
 - `numpy` is no longer a runtime dependency.
 
 ### Breaking
+- Python 3.9 is no longer supported (end-of-life); 3.10 or newer is required.
 - Errors are raised as `PlotIsError` (or `TypeError`/`FileNotFoundError` for
   invalid arguments) instead of a generic `Exception`.
 - `data` must be passed as a plain variable name.

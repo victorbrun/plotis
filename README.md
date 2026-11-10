@@ -80,6 +80,7 @@ With `render=True`, a `plt.show()` in the body can close the figure on interacti
 | `FileNotFoundError` | The `style` file does not exist. |
 
 ## Migrating from 0.1
+- Python 3.10 or newer is required.
 - Catch `PlotIsError` instead of `Exception`.
 - Pass `data` as a plain variable name (`PlotIs(path, df)`, not `PlotIs(path, df.copy())`).
 - `data.csv` has no index column. Read it with `pd.read_csv(path)`, without `index_col=0`.

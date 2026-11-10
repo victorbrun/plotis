@@ -22,7 +22,6 @@ import textwrap
 from contextlib import AbstractContextManager, ExitStack
 from pathlib import Path
 from types import TracebackType
-from typing import Union
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -34,7 +33,7 @@ CODE_FILE = "run.py"
 FIGURE_STEM = "figure"
 _FIGURE_CALLS = ("savefig", "show")
 
-_WithNode = Union[ast.With, ast.AsyncWith]
+_WithNode = ast.With | ast.AsyncWith
 
 
 class PlotIsError(Exception):
